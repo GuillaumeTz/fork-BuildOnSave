@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
 	<!--  This is the file that defines the actual layout and type of the commands.
@@ -74,6 +74,13 @@
 				</Strings>
 			</Button>
 
+			<Button guid="guidBuildOnSavePackageCmdSet" id="DisableWhenDebuggingCommandId" priority="0x0100" type="Button">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" />
+				<Strings>
+					<ButtonText>Disable when debugging</ButtonText>
+				</Strings>
+			</Button>
+
 			<Button guid="guidBuildOnSavePackageCmdSet" id="TargetSolutionCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" />
 				<Strings>
@@ -101,6 +108,7 @@
 			<IDSymbol name="BuildOnSaveCommandId" value="0x0100" />
 			<IDSymbol name="TargetSolutionCommandId" value="0x0101" />
 			<IDSymbol name="TargetStartupProjectCommandId" value="0x0102" />
+			<IDSymbol name="DisableWhenDebuggingCommandId" value="0x0103" />
 
 			<IDSymbol name="BuildOnSaveMenuGroup" value="0x1020" />
 			<IDSymbol name="BuildOnSaveTopLevelMenu" value="0x1021"/>

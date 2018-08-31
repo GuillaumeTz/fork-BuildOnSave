@@ -12,5 +12,6 @@ namespace BuildOnSave
 	{
 		public bool Enabled;
 		public BuildType BuildType;
+		public bool DisableWhenDebugging;
 	}
 }

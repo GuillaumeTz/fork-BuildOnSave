@@ -21,17 +21,17 @@ namespace BuildOnSave
 	{
 		readonly DTE _dte;
 		readonly Solution _solution;
-		public readonly BuildType BuildType;
+		public readonly SolutionOptions _options;
 		readonly BackgroundBuild2 _backgroundBuild;
 		readonly DriverUI _ui;
 		readonly SynchronizationContext _context;
 		readonly List<Document> _savedDocuments = new List<Document>();
 
-		public Driver(DTE dte, BuildType buildType, BackgroundBuild2 backgroundBuild, DriverUI ui)
+		public Driver(DTE dte, SolutionOptions options, BackgroundBuild2 backgroundBuild, DriverUI ui)
 		{
 			_dte = dte;
 			_solution = _dte.Solution;
-			BuildType = buildType;
+			_options = options;
 			_backgroundBuild = backgroundBuild;
 			_ui = ui;
 			_context = SynchronizationContext.Current;
@@ -45,6 +45,7 @@ namespace BuildOnSave
 		// state
 		bool _ignoreDocumentSaves;
 		bool _buildAgain;
+		bool _debuggerIsRunning;
 
 		public void onBeforeBuildSolutionCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
@@ -89,11 +90,23 @@ namespace BuildOnSave
 			buildCompleted(BuildStatus.Indeterminate);
 		}
 
+		public void onDebuggerEnterRunMode(dbgEventReason reason)
+		{
+			dumpState();
+			_debuggerIsRunning = true;
+		}
+
+		public void onDebuggerEnterDesignMode(dbgEventReason reason)
+		{
+			dumpState();
+			_debuggerIsRunning = false;
+		}
+
 		public void onDocumentSaved(Document document)
 		{
 			dumpState();
 
-			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject())
+			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject() || (_options.DisableWhenDebugging && _debuggerIsRunning))
 				return;
 			_savedDocuments.Add(document);
 			Log.D("document saved {path}:", document.FullName);
@@ -137,7 +150,7 @@ namespace BuildOnSave
 						projectsThatHaveChangedFilesAfterSaving()).Distinct().ToArray();
 
 				saveSolutionFiles();
-				beginBuild(_dte.Solution, BuildType, projectsChanged);
+				beginBuild(_dte.Solution, _options.BuildType, projectsChanged);
 			}
 			catch (Exception e)
 			{

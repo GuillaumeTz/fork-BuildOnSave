@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.ComponentModel.Design;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
+using System.Diagnostics;
 
 namespace BuildOnSave
 {
@@ -12,6 +13,7 @@ namespace BuildOnSave
 		const int TopMenuCommandId = 0x1021;
 		const int BuildTypeSolutionCommandId = 0x101;
 		const int BuildTypeStartupProjectCommandId = 0x102;
+		const int DisableWhenDebuggingCommandId = 0x103;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
@@ -19,6 +21,7 @@ namespace BuildOnSave
 		readonly MenuCommand _menuItem;
 		readonly MenuCommand _buildTypeSolution;
 		readonly MenuCommand _buildTypeStartupProject;
+		readonly MenuCommand _disableWhenDebugging;
 
 		readonly Window _outputWindow;
 		readonly OutputWindowPane _outputPane;
@@ -28,6 +31,7 @@ namespace BuildOnSave
 		readonly DocumentEvents _documentEvents;
 		readonly BuildEvents _buildEvents;
 		readonly CommandEvents _buildSolutionEvent;
+		readonly DebuggerEvents _debuggerEvents;
 
 
 		// state
@@ -41,6 +45,7 @@ namespace BuildOnSave
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
 			_buildEvents = _events.BuildEvents;
+			_debuggerEvents = _events.DebuggerEvents;
 			var guid = typeof(VSConstants.VSStd97CmdID).GUID.ToString("B");
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
@@ -50,14 +55,18 @@ namespace BuildOnSave
 					new CommandID(CommandSet, TopMenuCommandId));
 			_menuItem = new MenuCommand(enableDisableBuildOnSave, 
 					new CommandID(CommandSet, CommandId));
+			_disableWhenDebugging = new MenuCommand(enableDisableWhenDebugging,
+					new CommandID(CommandSet, DisableWhenDebuggingCommandId));
 			_buildTypeSolution = 
 					new MenuCommand(setBuildTypeToSolution, 
 						new CommandID(CommandSet, BuildTypeSolutionCommandId));
 			_buildTypeStartupProject = 
 					new MenuCommand(setBuildTypeToStartupProject, 
 						new CommandID(CommandSet, BuildTypeStartupProjectCommandId));
+
 			commandService.AddCommand(_topMenu);
 			commandService.AddCommand(_menuItem);
+			commandService.AddCommand(_disableWhenDebugging);
 			commandService.AddCommand(_buildTypeSolution);
 			commandService.AddCommand(_buildTypeStartupProject);
 
@@ -106,20 +115,26 @@ namespace BuildOnSave
 			_solutionOptions.Enabled = !_solutionOptions.Enabled;
 			syncOptions();
 		}
+		
+		void enableDisableWhenDebugging(object sender, EventArgs e)
+		{
+			_solutionOptions.DisableWhenDebugging = !_solutionOptions.DisableWhenDebugging;
+			syncOptions();
+		}
 
 		void syncOptions()
 		{
 			var options = _solutionOptions;
 
 			if (options.Enabled)
-				connectDriver(options.BuildType);
+				connectDriver(options);
 			else
 				disconnectDriver();
 
-			if (_driver_ != null && _driver_.BuildType != options.BuildType)
+			if (_driver_ != null && _driver_._options != options)
 			{
 				disconnectDriver();
-				connectDriver(options.BuildType);
+				connectDriver(options);
 			}
 
 			_menuItem.Checked = _driver_ != null;
@@ -127,16 +142,18 @@ namespace BuildOnSave
 			_buildTypeSolution.Enabled = _driver_ != null;
 			_buildTypeStartupProject.Checked = options.BuildType == BuildType.StartupProject;
 			_buildTypeStartupProject.Enabled = _driver_ != null;
+			_disableWhenDebugging.Checked = options.DisableWhenDebugging;
+			_disableWhenDebugging.Enabled = _driver_ != null;
 		}
 
-		void connectDriver(BuildType buildType)
+		void connectDriver(SolutionOptions options)
 		{
 			if (_driver_ != null)
 				return;
 
 			var backgroundBuild = new BackgroundBuild2(_dte, _outputPane);
 			var ui = new DriverUI(_dte, _outputWindow, _outputPane);
-			var driver = new Driver(_dte, buildType, backgroundBuild, ui);
+			var driver = new Driver(_dte, options, backgroundBuild, ui);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 
@@ -145,6 +162,9 @@ namespace BuildOnSave
 
 			_buildSolutionEvent.BeforeExecute += driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute += driver.onAfterBuildSolutionCommand;
+
+			_debuggerEvents.OnEnterRunMode += driver.onDebuggerEnterRunMode;
+			_debuggerEvents.OnEnterDesignMode += driver.onDebuggerEnterDesignMode;
 
 			_driver_ = driver;
 
@@ -164,6 +184,9 @@ namespace BuildOnSave
 
 			_buildSolutionEvent.BeforeExecute -= driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute -= driver.onAfterBuildSolutionCommand;
+
+			_debuggerEvents.OnEnterRunMode -= driver.onDebuggerEnterRunMode;
+			_debuggerEvents.OnEnterDesignMode -= driver.onDebuggerEnterDesignMode;
 
 			_driver_.Dispose();
 			_driver_ = null;
@@ -185,7 +208,8 @@ namespace BuildOnSave
 		static readonly SolutionOptions DefaultOptions = new SolutionOptions
 		{
 			Enabled = true,
-			BuildType = BuildType.Solution
+			BuildType = BuildType.Solution,
+			DisableWhenDebugging = false,
 		};
 	}
 
