@@ -17,6 +17,9 @@ BuildOnSave is an extension for Visual Studio 2017 that builds the current solut
 ### Options
 
 - Disable When Debugging : disable the recompilation when the debugger is attached. This allows tools like LivePP to hotreload changes more rapidly.
+- Relaunch build when saved : force a relaunch of the background build when a saved event is detected instead of waiting for current build to finish.
+- DoNotRunIfProcessExistList : code option modifiable in code for now. When one of those process is running, the build will not be launched.
+
 
 These options define what happens as soon one file is saved.
 
