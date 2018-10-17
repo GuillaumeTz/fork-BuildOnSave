@@ -2,8 +2,6 @@
 
 Put your CPU's cores to use and minimize the time to wait for your build!
 
-[![Build status](https://ci.appveyor.com/api/projects/status/4opfv6rmmw9mlums?svg=true)](https://ci.appveyor.com/project/pragmatrix/buildonsave)
-
 ## Introduction 
 
 BuildOnSave is an extension for Visual Studio 2017 that builds the current solution as soon a file is saved, and in combination with the extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
@@ -16,18 +14,15 @@ BuildOnSave is an extension for Visual Studio 2017 that builds the current solut
 
 ### Options
 
-- Disable When Debugging : disable the recompilation when the debugger is attached. This allows tools like LivePP to hotreload changes more rapidly.
-- Relaunch build when saved : force a relaunch of the background build when a saved event is detected instead of waiting for current build to finish.
-- DoNotRunIfProcessExistList : code option modifiable in code for now. When one of those process is running, the build will not be launched.
-
-
 These options define what happens as soon one file is saved.
 
 - **Build Solution**  
   Rebuilds the complete solution.
 - **Build Startup Project**  
   Rebuilds the startup project.
-
+- **Disable When Debugging** : disable the recompilation when the debugger is attached. This allows tools like LivePP to hotreload changes more rapidly.
+- **Relaunch build when saved** : force a relaunch of the background build when a saved event is detected instead of waiting for current build to finish.
+- **DoNotRunIfProcessExistList** : code option modifiable in code for now. When one of those process is running, the build will not be launched.
 
 ## Download & Installation
 

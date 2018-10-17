@@ -131,7 +131,7 @@ namespace BuildOnSave
 			Log.D("document saved {path}:", document.FullName);
 
 			//cancel previous compilation and launch now
-			if (_options.RelaunchNewBuildWhenSaved)
+			if (_options.RelaunchNewBuildWhenSaved && IsBackgroundBuildRunning)
 			{
 				_ui.setBuildStatus(BuildStatus.Indeterminate);
 				_backgroundBuild.cancelAndWait();

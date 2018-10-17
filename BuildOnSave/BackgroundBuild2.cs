@@ -185,7 +185,7 @@ namespace BuildOnSave
 			lock (_coreSyncRoot)
 			{
 				while (_coreRunning)
-					Monitor.Wait(_coreSyncRoot);
+					Monitor.Wait(_coreSyncRoot, 1000);
 			}
 		}
 
