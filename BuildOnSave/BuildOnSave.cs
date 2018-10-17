@@ -14,6 +14,7 @@ namespace BuildOnSave
 		const int BuildTypeSolutionCommandId = 0x101;
 		const int BuildTypeStartupProjectCommandId = 0x102;
 		const int DisableWhenDebuggingCommandId = 0x103;
+		const int RelaunchNewBuildWhenSavedCommandId = 0x104;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
@@ -22,6 +23,7 @@ namespace BuildOnSave
 		readonly MenuCommand _buildTypeSolution;
 		readonly MenuCommand _buildTypeStartupProject;
 		readonly MenuCommand _disableWhenDebugging;
+		readonly MenuCommand _relaunchNewBuildWhenSaved;
 
 		readonly Window _outputWindow;
 		readonly OutputWindowPane _outputPane;
@@ -57,6 +59,8 @@ namespace BuildOnSave
 					new CommandID(CommandSet, CommandId));
 			_disableWhenDebugging = new MenuCommand(enableDisableWhenDebugging,
 					new CommandID(CommandSet, DisableWhenDebuggingCommandId));
+			_relaunchNewBuildWhenSaved = new MenuCommand(enableRelaunchNewBuildWhenSaved,
+				new CommandID(CommandSet, RelaunchNewBuildWhenSavedCommandId));
 			_buildTypeSolution = 
 					new MenuCommand(setBuildTypeToSolution, 
 						new CommandID(CommandSet, BuildTypeSolutionCommandId));
@@ -67,6 +71,7 @@ namespace BuildOnSave
 			commandService.AddCommand(_topMenu);
 			commandService.AddCommand(_menuItem);
 			commandService.AddCommand(_disableWhenDebugging);
+			commandService.AddCommand(_relaunchNewBuildWhenSaved);
 			commandService.AddCommand(_buildTypeSolution);
 			commandService.AddCommand(_buildTypeStartupProject);
 
@@ -122,6 +127,12 @@ namespace BuildOnSave
 			syncOptions();
 		}
 
+		void enableRelaunchNewBuildWhenSaved(object sender, EventArgs e)
+		{
+			_solutionOptions.RelaunchNewBuildWhenSaved = !_solutionOptions.RelaunchNewBuildWhenSaved;
+			syncOptions();
+		}
+
 		void syncOptions()
 		{
 			var options = _solutionOptions;
@@ -144,6 +155,8 @@ namespace BuildOnSave
 			_buildTypeStartupProject.Enabled = _driver_ != null;
 			_disableWhenDebugging.Checked = options.DisableWhenDebugging;
 			_disableWhenDebugging.Enabled = _driver_ != null;
+			_relaunchNewBuildWhenSaved.Checked = options.RelaunchNewBuildWhenSaved;
+			_relaunchNewBuildWhenSaved.Enabled = _driver_ != null;
 		}
 
 		void connectDriver(SolutionOptions options)
@@ -210,6 +223,7 @@ namespace BuildOnSave
 			Enabled = true,
 			BuildType = BuildType.Solution,
 			DisableWhenDebugging = false,
+			RelaunchNewBuildWhenSaved = true,
 		};
 	}
 

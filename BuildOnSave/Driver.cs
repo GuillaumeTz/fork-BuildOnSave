@@ -7,6 +7,7 @@ using System.Threading;
 using EnvDTE;
 using Project = EnvDTE.Project;
 using System.Diagnostics;
+using Process = System.Diagnostics.Process;
 
 namespace BuildOnSave
 {
@@ -108,8 +109,33 @@ namespace BuildOnSave
 
 			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject() || (_options.DisableWhenDebugging && _debuggerIsRunning))
 				return;
+
+			//check if any of thoses processes are running
+			if (_options.DoNotRunIfProcessExistList.Count > 0 && !IsBackgroundBuildRunning)
+			{
+				Process[] Processlist = Process.GetProcesses();
+
+				foreach (Process TheProcess in Processlist)
+				{
+					foreach (string ForbidProcessStr in _options.DoNotRunIfProcessExistList)
+					{
+						if (TheProcess.ProcessName.Contains(ForbidProcessStr))
+						{
+							return;
+						}
+					}
+				}
+			}
+
 			_savedDocuments.Add(document);
 			Log.D("document saved {path}:", document.FullName);
+
+			//cancel previous compilation and launch now
+			if (_options.RelaunchNewBuildWhenSaved)
+			{
+				_ui.setBuildStatus(BuildStatus.Indeterminate);
+				_backgroundBuild.cancelAndWait();
+			}
 			schedule(beginBuild);
 		}
 

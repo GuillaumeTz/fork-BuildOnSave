@@ -1,4 +1,5 @@
-﻿using System;
+using System.Collections.Generic;
+using System;
 
 namespace BuildOnSave
 {
@@ -13,5 +14,7 @@ namespace BuildOnSave
 		public bool Enabled;
 		public BuildType BuildType;
 		public bool DisableWhenDebugging;
+		public bool RelaunchNewBuildWhenSaved;
+		public List<string> DoNotRunIfProcessExistList = new List<string>(new string[] { "UnrealBuildTool" });
 	}
 }
