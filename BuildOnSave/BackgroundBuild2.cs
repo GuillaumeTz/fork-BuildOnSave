@@ -27,7 +27,7 @@ namespace BuildOnSave
 
 		// State as seen from the background thread.
 		readonly object _coreSyncRoot = new object();
-		bool _coreRunning;
+		bool _coreRunning = false;
 
 		public BackgroundBuild2(DTE dte, OutputWindowPane pane)
 		{
@@ -182,11 +182,8 @@ namespace BuildOnSave
 		{
 			_buildCancellation_?.Cancel();
 
-			lock (_coreSyncRoot)
-			{
-				while (_coreRunning)
-					Monitor.Wait(_coreSyncRoot, 1000);
-			}
+			while (_coreRunning)
+				System.Threading.Thread.Sleep(500);
 		}
 
 		void build(BuildRequest request, CancellationToken cancellation, Action<BuildStatus> onCompleted)
@@ -195,11 +192,7 @@ namespace BuildOnSave
 
 			try
 			{
-				lock (_coreSyncRoot)
-				{
-					_coreRunning = true;
-					Monitor.PulseAll(_coreSyncRoot);
-				}
+				_coreRunning = true;
 
 				// cancelAndWait() may cancel _and_ return before _coreRunning was set to true, we
 				// want to be sure to not start another build then.
@@ -222,12 +215,7 @@ namespace BuildOnSave
 			}
 			finally
 			{
-				lock (_coreSyncRoot)
-				{
-					_coreRunning = false;
-					Monitor.PulseAll(_coreSyncRoot);
-				}
-
+				_coreRunning = false;
 				_mainThread.Post(_ => onCompleted(status), null);
 			}
 		}

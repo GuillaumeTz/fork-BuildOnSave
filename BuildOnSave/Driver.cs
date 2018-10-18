@@ -95,12 +95,14 @@ namespace BuildOnSave
 		{
 			dumpState();
 			_debuggerIsRunning = true;
+			_ignoreDocumentSaves = false;
 		}
 
 		public void onDebuggerEnterDesignMode(dbgEventReason reason)
 		{
 			dumpState();
 			_debuggerIsRunning = false;
+			_ignoreDocumentSaves = false;
 		}
 
 		public void onDocumentSaved(Document document)
