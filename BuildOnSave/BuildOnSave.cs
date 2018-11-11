@@ -4,6 +4,7 @@ using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace BuildOnSave
 {
@@ -33,7 +34,6 @@ namespace BuildOnSave
 		readonly DocumentEvents _documentEvents;
 		readonly BuildEvents _buildEvents;
 		readonly CommandEvents _buildSolutionEvent;
-		readonly DebuggerEvents _debuggerEvents;
 
 
 		// state
@@ -47,7 +47,6 @@ namespace BuildOnSave
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
 			_buildEvents = _events.BuildEvents;
-			_debuggerEvents = _events.DebuggerEvents;
 			var guid = typeof(VSConstants.VSStd97CmdID).GUID.ToString("B");
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
@@ -176,9 +175,6 @@ namespace BuildOnSave
 			_buildSolutionEvent.BeforeExecute += driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute += driver.onAfterBuildSolutionCommand;
 
-			_debuggerEvents.OnEnterRunMode += driver.onDebuggerEnterRunMode;
-			_debuggerEvents.OnEnterDesignMode += driver.onDebuggerEnterDesignMode;
-
 			_driver_ = driver;
 
 			Log.D("driver connected");
@@ -197,9 +193,6 @@ namespace BuildOnSave
 
 			_buildSolutionEvent.BeforeExecute -= driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute -= driver.onAfterBuildSolutionCommand;
-
-			_debuggerEvents.OnEnterRunMode -= driver.onDebuggerEnterRunMode;
-			_debuggerEvents.OnEnterDesignMode -= driver.onDebuggerEnterDesignMode;
 
 			_driver_.Dispose();
 			_driver_ = null;
@@ -224,6 +217,7 @@ namespace BuildOnSave
 			BuildType = BuildType.Solution,
 			DisableWhenDebugging = false,
 			RelaunchNewBuildWhenSaved = true,
+			DoNotRunIfProcessExistList = new List<string>(new string[] { "UnrealBuildTool" }),
 		};
 	}
 

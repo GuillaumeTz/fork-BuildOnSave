@@ -15,6 +15,6 @@ namespace BuildOnSave
 		public BuildType BuildType;
 		public bool DisableWhenDebugging;
 		public bool RelaunchNewBuildWhenSaved;
-		public List<string> DoNotRunIfProcessExistList = new List<string>(new string[] { "UnrealBuildTool" });
+		public List<string> DoNotRunIfProcessExistList = new List<string>();
 	}
 }

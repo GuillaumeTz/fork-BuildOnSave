@@ -44,9 +44,9 @@ namespace BuildOnSave
 		}
 
 		// state
-		bool _ignoreDocumentSaves;
-		bool _buildAgain;
-		bool _debuggerIsRunning;
+		bool _ignoreDocumentSaves = false;
+		bool _buildAgain = false;
+		bool IsDebuggerRunning => _dte.Debugger.CurrentMode != dbgDebugMode.dbgDesignMode;
 
 		public void onBeforeBuildSolutionCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
@@ -91,26 +91,15 @@ namespace BuildOnSave
 			buildCompleted(BuildStatus.Indeterminate);
 		}
 
-		public void onDebuggerEnterRunMode(dbgEventReason reason)
-		{
-			dumpState();
-			_debuggerIsRunning = true;
-			_ignoreDocumentSaves = false;
-		}
-
-		public void onDebuggerEnterDesignMode(dbgEventReason reason)
-		{
-			dumpState();
-			_debuggerIsRunning = false;
-			_ignoreDocumentSaves = false;
-		}
-
 		public void onDocumentSaved(Document document)
 		{
 			dumpState();
 
-			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject() || (_options.DisableWhenDebugging && _debuggerIsRunning))
+			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject() || (_options.DisableWhenDebugging && IsDebuggerRunning))
+			{
+				Log.D("!document.BelongsToAnOpenProject() {BelongsToAnOpenProject}:", !document.BelongsToAnOpenProject());
 				return;
+			}
 
 			//check if any of thoses processes are running
 			if (_options.DoNotRunIfProcessExistList.Count > 0 && !IsBackgroundBuildRunning)
@@ -123,6 +112,7 @@ namespace BuildOnSave
 					{
 						if (TheProcess.ProcessName.Contains(ForbidProcessStr))
 						{
+							Log.D("process is running {process}:", TheProcess.ProcessName);
 							return;
 						}
 					}
@@ -301,12 +291,14 @@ namespace BuildOnSave
 
 		void dumpState([CallerMemberName] string context = "")
 		{
-			Log.D("{context}: state: {state}, again: {again}, thread: {thread}, saved: {saved}", 
+			Log.D("{context}: state: {state}, again: {again}, thread: {thread}, saved: {saved}, ignoresDocSaves: {ignoreDocSaves}, IsDebuggerRunning: {IsDebuggerRunning}", 
 				context, 
 				_dte.Solution.SolutionBuild.BuildState, 
 				_buildAgain, 
 				System.Threading.Thread.CurrentThread.ManagedThreadId,
-				_savedDocuments.Count);
+				_savedDocuments.Count,
+				_ignoreDocumentSaves,
+				IsDebuggerRunning);
 		}
 	}
 }

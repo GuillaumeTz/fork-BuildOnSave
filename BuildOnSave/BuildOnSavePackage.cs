@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace BuildOnSave
 {
@@ -30,7 +31,7 @@ namespace BuildOnSave
 		// 4: BuildType enum got ProjectsOfSavedFiles and AffectedProjectsOfSavedFiles removed.
 
 		// this is what we will write.
-		const string CurrentSolutionSettingsKey = "BuildOnSave_4";
+		const string CurrentSolutionSettingsKey = "BuildOnSave_6";
 		// this is what we can load
 		readonly string[] LoadableSolutionSettingKeys = new [] {
 			CurrentSolutionSettingsKey,
@@ -108,7 +109,12 @@ namespace BuildOnSave
 				Log.D("deserializing and applying solution options {options}", serialized);
 				var options = JsonConvert.DeserializeObject<SolutionOptions>(serialized);
 				if (options != null) // this happened once (serialized == "null"), but I don't know why yet.
+				{
 					_buildOnSave_.SolutionOptions = options;
+					if (_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList == null)
+						_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList = new List<string>();
+					_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList = _buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList.Distinct().ToList();
+				}
 			}
 			catch (Exception e)
 			{
