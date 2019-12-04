@@ -56,6 +56,7 @@ namespace BuildOnSave
 			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
 			_dte = GetService(typeof (DTE)) as DTE;
 			_events = _dte.Events;
+			_events.DTEEvents.OnBeginShutdown += beginShutdown;
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;
 			_solutionEvents.AfterClosing += solutionClosed;
@@ -71,6 +72,11 @@ namespace BuildOnSave
 			}
 
 			base.Initialize();
+		}
+
+		void beginShutdown()
+		{
+			_buildOnSave_.beginShutdown();
 		}
 
 		void solutionOpened()

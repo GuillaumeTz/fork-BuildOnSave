@@ -38,8 +38,17 @@ namespace BuildOnSave
 			_context = SynchronizationContext.Current;
 		}
 
+		public void CancelAndWait()
+		{
+			if (_backgroundBuild != null)
+			{
+				_backgroundBuild.cancelAndWait();
+			}
+		}
+
 		public void Dispose()
 		{
+			CancelAndWait();
 			_ui.Dispose();
 		}
 

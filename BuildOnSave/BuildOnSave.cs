@@ -103,6 +103,11 @@ namespace BuildOnSave
 			syncOptions();
 		}
 
+		public void beginShutdown()
+		{
+			_driver_.CancelAndWait();
+		}
+
 		public void solutionOpened()
 		{
 			_topMenu.Visible = true;
@@ -110,6 +115,7 @@ namespace BuildOnSave
 
 		public void solutionClosed()
 		{
+			_driver_.CancelAndWait();
 			SolutionOptions = DefaultOptions;
 			_topMenu.Visible = false;
 		}
@@ -214,8 +220,8 @@ namespace BuildOnSave
 		static readonly SolutionOptions DefaultOptions = new SolutionOptions
 		{
 			Enabled = true,
-			BuildType = BuildType.Solution,
-			DisableWhenDebugging = false,
+			BuildType = BuildType.StartupProject,
+			DisableWhenDebugging = true,
 			RelaunchNewBuildWhenSaved = true,
 			DoNotRunIfProcessExistList = new List<string>(new string[] { "UnrealBuildTool" }),
 		};

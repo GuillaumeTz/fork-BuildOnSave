@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using EnvDTE;
@@ -45,20 +46,31 @@ namespace BuildOnSave
 				Project[] skippedProjects,
 				string solutionConfiguration,
 				string solutionPlatform,
-				SolutionContexts solutionContexts)
+				SolutionContexts solutionContexts,
+				string SolutionDir)
 			{
 				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
 				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
-				var projectProperties = solutionContexts.GlobalProjectProperties();
+				Dictionary<string, (string, string)[]> fixedProjectProperties = new Dictionary<string, (string, string)[]>();
+				{
+					var projectProperties = solutionContexts.GlobalProjectProperties();
+					foreach (var projectProps in projectProperties)
+					{
+						List<(string, string)> Props = projectProps.Value.ToList();
+						Props.Add(("SolutionDir", SolutionDir));
+
+						fixedProjectProperties.Add(projectProps.Key, Props.ToArray());
+					}
+				}
+
 				var instanceMap = allProjects.ToDictionary(
 					project => project, 
-					project => project.CreateInstance(projectProperties[project.UniqueName]));
+					project => project.CreateInstance(fixedProjectProperties[project.UniqueName]));
 
 				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
 				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
 				SolutionConfiguration = solutionConfiguration;
 				SolutionPlatform = solutionPlatform;
-
 				_skipped = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
 			}
 
@@ -131,6 +143,8 @@ namespace BuildOnSave
 
 			var changedProjects = Projects.OfPaths(loadedProjects, changedProjectPaths);
 
+			string SolutionDir = Path.GetDirectoryName(solution.FullName) + "\\";
+
 			if (startupProject_ == null)
 			{
 				var affectedProjects = dependencies.AffectedProjects(loadedProjects, changedProjects);
@@ -146,7 +160,8 @@ namespace BuildOnSave
 					skipped,
 					configuration.Name,
 					configuration.PlatformName, 
-					configuration.SolutionContexts);
+					configuration.SolutionContexts,
+					SolutionDir);
 			}
 			else
 			{
@@ -170,7 +185,8 @@ namespace BuildOnSave
 					skipped,
 					configuration.Name,
 					configuration.PlatformName,
-					configuration.SolutionContexts);
+					configuration.SolutionContexts,
+					SolutionDir);
 			}
 		}
 
