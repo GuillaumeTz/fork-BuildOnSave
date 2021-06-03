@@ -8,18 +8,21 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio;
 
 namespace BuildOnSave
 {
-	[PackageRegistration(UseManagedResourcesOnly = true)]
+	[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
-	// why is this needed?
+	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)]
 	[ProvideMenuResource("Menus.ctmenu", 1)]
 	[Guid(PackageGuidString)]
 
 	// This package needs to be loaded _before_ the user interacts with its UI.
 	[ProvideAutoLoad(UIContextGuids80.SolutionExists)]
-	public sealed class BuildOnSavePackage : Package
+	public sealed class BuildOnSavePackage : AsyncPackage
 	{
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 		BuildOnSave _buildOnSave_;
@@ -51,16 +54,17 @@ namespace BuildOnSave
 		/// Initialization of the package; this method is called right after the package is sited, so this is the place
 		/// where you can put all the initialization code that rely on services provided by VisualStudio.
 		/// </summary>
-		protected override void Initialize()
+		protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
 		{
 			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
-			_dte = GetService(typeof (DTE)) as DTE;
+			_dte = await GetServiceAsync(typeof(DTE)) as DTE;
 			_events = _dte.Events;
 			_events.DTEEvents.OnBeginShutdown += beginShutdown;
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;
 			_solutionEvents.AfterClosing += solutionClosed;
 
+			await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 			try
 			{
 				_buildOnSave_ = new BuildOnSave(this);
@@ -71,7 +75,7 @@ namespace BuildOnSave
 				throw;
 			}
 
-			base.Initialize();
+			await base.InitializeAsync(cancellationToken, progress);
 		}
 
 		void beginShutdown()

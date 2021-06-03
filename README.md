@@ -4,7 +4,7 @@ Put your CPU's cores to use and minimize the time to wait for your build!
 
 ## Introduction 
 
-BuildOnSave is an extension for Visual Studio 2017 that builds the current solution as soon a file is saved, and in combination with the extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
+BuildOnSave is an extension for Visual Studio 2019 that builds the current solution as soon a file is saved, and in combination with the extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
 
 ### Features
 
@@ -30,12 +30,12 @@ At the [Visual Studio Extension Gallery](https://marketplace.visualstudio.com/it
 
 ## Development & Contribution
 
-Clone the repository and open the solution file `BuildOnSave.sln` in Visual Studio 2017. BuildOnSave should compile out of the box.
+Clone the repository and open the solution file `BuildOnSave.sln` in Visual Studio 2019. BuildOnSave should compile out of the box.
 
 To start the Experimental Instance of Visual Studio for a debug session (F5 or Ctrl+F5), add the following to the Debug tab of BuildOnSave's project properties:
 
 - Start external program:  
-  `C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\devenv.exe`
+  `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.exe`
 - Command line arguments:  
   `/rootsuffix Exp`
 
