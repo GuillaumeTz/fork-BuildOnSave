@@ -6,9 +6,11 @@ using System.Threading;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
 using static BuildOnSave.DevTools;
+using Project = EnvDTE.Project;
 
 namespace BuildOnSave
 {
@@ -42,36 +44,63 @@ namespace BuildOnSave
 		{
 			public BuildRequest(
 				BuildDependencies dependencies,
-				Project[] primaryProjects, 
+				Project[] primaryProjects,
 				Project[] skippedProjects,
 				string solutionConfiguration,
 				string solutionPlatform,
 				SolutionContexts solutionContexts,
-				string SolutionDir)
+				(string, string)[] solutionProperties
+				)
 			{
 				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
 				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
-				Dictionary<string, (string, string)[]> fixedProjectProperties = new Dictionary<string, (string, string)[]>();
-				{
-					var projectProperties = solutionContexts.GlobalProjectProperties();
-					foreach (var projectProps in projectProperties)
-					{
-						List<(string, string)> Props = projectProps.Value.ToList();
-						Props.Add(("SolutionDir", SolutionDir));
-
-						fixedProjectProperties.Add(projectProps.Key, Props.ToArray());
-					}
-				}
-
+				var globalProjectConfigurationProperties = solutionContexts.GlobalProjectConfigurationProperties();
 				var instanceMap = allProjects.ToDictionary(
 					project => project, 
-					project => project.CreateInstance(fixedProjectProperties[project.UniqueName]));
+					project => project.CreateInstance(resolveProperties(project)));
 
 				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
 				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
+
+				Log.D("projects to build (ordered): {0}", 
+					string.Join(", ", AllProjectsToBuildOrdered.Select(instance => instance.NameOf()).ToArray()));
+
 				SolutionConfiguration = solutionConfiguration;
 				SolutionPlatform = solutionPlatform;
-				_skipped = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
+
+				_projectsToSkip = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
+
+				(string, string)[] resolveProperties(Project project)
+				{
+					// If the project is managed with the new build system,
+					// take specific properties from there.
+					var specificProperties = resolveSpecificProperties(project);
+					var configurationProperties = globalProjectConfigurationProperties[project.UniqueName];
+
+					return 
+						// note that specific properties may already contain solution and
+						// configuration properties, if so, overwrite them with the
+						// ones retrieved from the IDE or computed ones.
+						specificProperties
+							.Merge(solutionProperties)
+							.Merge(configurationProperties);
+				}
+
+				// Note that these may contain solution _and_ configuration properties.
+				(string, string)[] resolveSpecificProperties(Project project)
+				{
+					var existingProject = 
+						ProjectCollection
+							.GlobalProjectCollection
+							.GetLoadedProjects(project.FullName)
+							.SingleOrDefault();
+
+					if (existingProject == null)
+						return Properties.Empty();
+
+					Log.D("resolved specific project properties for project: {0}", project.Name);
+					return existingProject.GlobalProperties.ToProperties();
+				}
 			}
 
 			public readonly ProjectInstance[] PrimaryProjects;
@@ -79,11 +108,11 @@ namespace BuildOnSave
 			public readonly string SolutionConfiguration;
 			public readonly string SolutionPlatform;
 
-			readonly HashSet<ProjectInstance> _skipped;
+			readonly HashSet<ProjectInstance> _projectsToSkip;
 
 			public bool mustBeSkipped(ProjectInstance instance)
 			{
-				return _skipped.Contains(instance);
+				return _projectsToSkip.Contains(instance);
 			}
 
 			public BuildRequestData createBuildRequestData(ProjectInstance instance)
@@ -117,10 +146,22 @@ namespace BuildOnSave
 		{
 			var solution = (Solution2)_dte.Solution;
 
+			var solutionPath = solution.FullName;
+
+			var solutionProperties = new[]
+			{
+				("SolutionPath", solutionPath),
+				("SolutionDir", Path.GetDirectoryName(solutionPath)),
+				("SolutionName", Path.GetFileNameWithoutExtension(solutionPath)),
+				("SolutionFileName", Path.GetFileName(solutionPath)),
+				("SolutionExt", Path.GetExtension(solutionPath))
+			};
+
 			var loadedProjects =
 				solution.GetAllProjects()
 					.Where(p => p.IsLoaded())
 					.ToArray();
+
 			var dependencies = solution.SolutionBuild.BuildDependencies;
 
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
@@ -161,7 +202,8 @@ namespace BuildOnSave
 					configuration.Name,
 					configuration.PlatformName, 
 					configuration.SolutionContexts,
-					SolutionDir);
+					solutionProperties
+					);
 			}
 			else
 			{
@@ -186,7 +228,7 @@ namespace BuildOnSave
 					configuration.Name,
 					configuration.PlatformName,
 					configuration.SolutionContexts,
-					SolutionDir);
+					solutionProperties);
 			}
 		}
 
@@ -320,7 +362,12 @@ namespace BuildOnSave
 			var projectInfo = 
 				request.PrimaryProjects.Length == 1
 					? ("Project: " + request.PrimaryProjects[0].NameOf())
-					: ("Projects: " + request.PrimaryProjects.Select(ProjectInstances.NameOf).Aggregate((a, b) => a + ";" + b));
+					: ("Projects: " +
+						// request.PrimaryProjects contains the projects that will actually be built, but in the wrong order, so
+						// we filter them from AllProjects (tbd: this could be prepared in the BuildRequest constructor).
+						string.Join(";", request.AllProjectsToBuildOrdered
+							.Where(instance => !request.mustBeSkipped(instance))
+							.Select(ProjectInstances.NameOf)));
 			var configurationInfo = "Configuration: " + request.SolutionConfiguration + " " + request.SolutionPlatform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
@@ -397,9 +444,5 @@ namespace BuildOnSave
 			public LoggerVerbosity Verbosity { get; set; }
 			public string Parameters { get; set; }
 		}
-
-#region ProjectInstance helpers
-
-		#endregion
 	}
 }

@@ -75,12 +75,12 @@ namespace BuildOnSave
 
 		static Dictionary<string, HashSet<string>> DependentMap(BuildDependencies dependencies, Project[] all)
 		{
-			var allGuids = all.ToDictionary(GetProjectKey);
+			var allKeys = all.ToDictionary(GetProjectKey);
 			var dict = new Dictionary<string, HashSet<string>>();
 			foreach (var project in all)
 			{
-				var guid = project.GetProjectKey();
-				var deps = DependentProjectKeys(dependencies, project).Where(allGuids.ContainsKey).ToArray();
+				var key = project.GetProjectKey();
+				var deps = DependentProjectKeys(dependencies, project).Where(allKeys.ContainsKey).ToArray();
 				foreach (var dep in deps)
 				{
 					if (!dict.TryGetValue(dep, out var dependents))
@@ -88,7 +88,7 @@ namespace BuildOnSave
 						dependents = new HashSet<string>();
 						dict.Add(dep, dependents);
 					}
-					dependents.Add(guid);
+					dependents.Add(key);
 				}
 			}
 			return dict;
@@ -97,7 +97,11 @@ namespace BuildOnSave
 		/// Returns the keys of the direct dependencies of a project.
 		public static string[] DependentProjectKeys(BuildDependencies dependencies, Project project)
 		{
-			var dependency = dependencies.Item(project.UniqueName);
+			var uniqueName = project.UniqueName;
+			var dependency = dependencies.Item(uniqueName);
+			// dependency might be null, see #52.
+			if (dependency == null)
+				return new string[0];
 			return ((IEnumerable)dependency.RequiredProjects)
 				.Cast<Project>()
 				.Select(rp => rp.UniqueName)
@@ -120,15 +124,15 @@ namespace BuildOnSave
 		{
 			return project.UniqueName;
 		}
-		public static Dictionary<string, (string, string)[]> GlobalProjectProperties(this SolutionContexts solutionContexts)
+
+		public static Dictionary<string, (string, string)[]> GlobalProjectConfigurationProperties(this SolutionContexts solutionContexts)
 		{
 			return solutionContexts
 				.Cast<SolutionContext>()
-				.ToDictionary(context => context.ProjectName, GlobalProjectProperties);
-			
+				.ToDictionary(context => context.ProjectName, GlobalProjectConfigurationProperties);
 		}
 
-		static (string, string)[] GlobalProjectProperties(this SolutionContext context)
+		static (string, string)[] GlobalProjectConfigurationProperties(this SolutionContext context)
 		{
 			// not sure why that is.
 			var platformName = 

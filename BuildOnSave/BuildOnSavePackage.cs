@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,10 +8,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
-using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio;
 
 namespace BuildOnSave
 {
@@ -21,7 +19,8 @@ namespace BuildOnSave
 	[Guid(PackageGuidString)]
 
 	// This package needs to be loaded _before_ the user interacts with its UI.
-	[ProvideAutoLoad(UIContextGuids80.SolutionExists)]
+	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+
 	public sealed class BuildOnSavePackage : AsyncPackage
 	{
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
@@ -57,7 +56,8 @@ namespace BuildOnSave
 		protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
 		{
 			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
-			_dte = await GetServiceAsync(typeof(DTE)) as DTE;
+
+			_dte = (DTE) await GetServiceAsync(typeof (DTE));
 			_events = _dte.Events;
 			_events.DTEEvents.OnBeginShutdown += beginShutdown;
 			_solutionEvents = _events.SolutionEvents;
@@ -67,7 +67,13 @@ namespace BuildOnSave
 			await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 			try
 			{
-				_buildOnSave_ = new BuildOnSave(this);
+				var commandService = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
+				// BuildOnSave constructor calls GetService() indirectly, so according to MS a
+				// switch to the main thread is required.
+				// Now I am asking why we need InitializeAsync() at all if we could just switch
+				// to the main thread?
+				await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				_buildOnSave_ = new BuildOnSave(_dte, commandService);
 			}
 			catch (Exception e)
 			{
@@ -76,11 +82,6 @@ namespace BuildOnSave
 			}
 
 			await base.InitializeAsync(cancellationToken, progress);
-		}
-
-		void beginShutdown()
-		{
-			_buildOnSave_.beginShutdown();
 		}
 
 		void solutionOpened()
