@@ -9,17 +9,15 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace BuildOnSave
 {
 	[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
-	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)]
+	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
 	[ProvideMenuResource("Menus.ctmenu", 1)]
 	[Guid(PackageGuidString)]
-
-	// This package needs to be loaded _before_ the user interacts with its UI.
-	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
 
 	public sealed class BuildOnSavePackage : AsyncPackage
 	{
@@ -59,7 +57,6 @@ namespace BuildOnSave
 
 			_dte = (DTE) await GetServiceAsync(typeof (DTE));
 			_events = _dte.Events;
-			_events.DTEEvents.OnBeginShutdown += beginShutdown;
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;
 			_solutionEvents.AfterClosing += solutionClosed;

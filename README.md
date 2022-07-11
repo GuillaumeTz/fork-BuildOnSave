@@ -20,9 +20,12 @@ These options define what happens as soon a file is saved.
   Rebuilds the complete solution.
 - **Build Startup Project**  
   Rebuilds the startup project.
-- **Disable When Debugging** : disable the recompilation when the debugger is attached. This allows tools like LivePP to hotreload changes more rapidly.
-- **Relaunch build when saved** : force a relaunch of the background build when a saved event is detected instead of waiting for current build to finish.
-- **DoNotRunIfProcessExistList** : code option modifiable in code for now. When one of those process is running, the build will not be launched.
+- **Disable When Debugging** 
+  Disable the recompilation when the debugger is attached. This allows tools like LivePP or Unreal Engine live coding to have full cpu priority.
+- **Relaunch build when saved**
+  Force a relaunch of the background build when a saved event is detected instead of waiting for current build to finish.
+- **DoNotRunIfProcessExistList** 
+  Do not launch background compilation when one of those processes is running (Modifiable in code for now, default to : UnrealBuildTool for Unreal Engine Live Coding supports)
 
 ## Download & Installation
 
