@@ -35,6 +35,10 @@ namespace BuildOnSave
 			_options = options;
 			_backgroundBuild = backgroundBuild;
 			_ui = ui;
+			_ui._onIconDoubleClick += () => {
+				cancelBackgroundBuild();
+			};
+
 			_context = SynchronizationContext.Current;
 		}
 
@@ -74,16 +78,26 @@ namespace BuildOnSave
 			dumpState();
 			Log.D("VS build begin {scope}, {action}", scope, action);
 
-			prepareForVSBuild();
+			cancelBackgroundBuild();
 		}
 
-		void prepareForVSBuild()
+		public void onBeforeSaveCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
-			// immediately reflect in the UI that we are not wanted anymore!
-			_ui.setBuildStatus(BuildStatus.Indeterminate);
+			cancelBackgroundBuild();
+		}
 
+		public void onBeforeSaveAsCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
+		{
+			cancelBackgroundBuild();
+		}
+
+		void cancelBackgroundBuild()
+		{
 			_buildAgain = false;
 			_backgroundBuild.cancelAndWait();
+
+			// immediately reflect in the UI that we are not wanted anymore!
+			_ui.setBuildStatus(BuildStatus.Indeterminate);
 		}
 
 		public void onBuildDone(vsBuildScope scope, vsBuildAction action)

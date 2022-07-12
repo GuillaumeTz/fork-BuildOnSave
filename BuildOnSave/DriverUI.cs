@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using EnvDTE;
@@ -30,6 +30,10 @@ namespace BuildOnSave
 		BuildStatus _status = BuildStatus.Indeterminate;
 		bool _processing;
 
+		DateTime _lastCLickTime;
+		public delegate void OnIconDoubleClick();
+		public OnIconDoubleClick _onIconDoubleClick;
+
 		const string BarButtonControlCaption = "BuildOnSave Status";
 
 		public DriverUI(DTE dte, Window outputWindow, OutputWindowPane pane)
@@ -52,8 +56,17 @@ namespace BuildOnSave
 				control.BeginGroup = true;
 				control.Click += (CommandBarButton ctrl, ref bool d) =>
 				{
+					TimeSpan ts = DateTime.Now - _lastCLickTime;
+					_lastCLickTime = DateTime.Now;
+
+					if (ts.TotalMilliseconds < 500)
+					{
+						//consider double click => cancel current build if any
+						_onIconDoubleClick();
+					}
+
 					_outputWindow.Visible = true;
-					pane.Activate();
+					_pane.Activate();
 				};
 			}
 			else

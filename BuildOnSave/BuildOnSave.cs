@@ -35,7 +35,8 @@ namespace BuildOnSave
 		readonly DocumentEvents _documentEvents;
 		readonly BuildEvents _buildEvents;
 		readonly CommandEvents _buildSolutionEvent;
-
+		readonly CommandEvents _saveCommandEvent;
+		readonly CommandEvents _saveAsCommandEvent;
 
 		// state
 		SolutionOptions _solutionOptions;
@@ -49,7 +50,8 @@ namespace BuildOnSave
 			_buildEvents = _events.BuildEvents;
 			var guid = typeof(VSConstants.VSStd97CmdID).GUID.ToString("B");
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
-
+			_saveCommandEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.SaveProjectItem];
+			_saveAsCommandEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.SaveProjectItemAs];
 
 			_topMenu = new MenuCommand(delegate { }, 
 					new CommandID(CommandSet, TopMenuCommandId));
@@ -180,6 +182,10 @@ namespace BuildOnSave
 			_buildSolutionEvent.BeforeExecute += driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute += driver.onAfterBuildSolutionCommand;
 
+			// Cancel background build link to following commands
+			_saveCommandEvent.BeforeExecute += driver.onBeforeSaveCommand;
+			_saveAsCommandEvent.BeforeExecute += driver.onBeforeSaveAsCommand;
+
 			_driver_ = driver;
 
 			Log.D("driver connected");
@@ -198,6 +204,10 @@ namespace BuildOnSave
 
 			_buildSolutionEvent.BeforeExecute -= driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute -= driver.onAfterBuildSolutionCommand;
+
+			// Cancel background build link to following commands
+			_saveCommandEvent.BeforeExecute -= driver.onBeforeSaveCommand;
+			_saveAsCommandEvent.BeforeExecute -= driver.onBeforeSaveAsCommand;
 
 			_driver_.Dispose();
 			_driver_ = null;
