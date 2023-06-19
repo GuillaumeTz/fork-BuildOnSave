@@ -144,14 +144,15 @@ namespace BuildOnSave
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
-			var solution = (Solution2)_dte.Solution;
+			var solution = (EnvDTE80.Solution2)_dte.Solution;
 
 			var solutionPath = solution.FullName;
 
+			var SolutionDir = Path.GetDirectoryName(solution.FullName) + "\\";
 			var solutionProperties = new[]
 			{
 				("SolutionPath", solutionPath),
-				("SolutionDir", Path.GetDirectoryName(solutionPath)),
+				("SolutionDir", SolutionDir),
 				("SolutionName", Path.GetFileNameWithoutExtension(solutionPath)),
 				("SolutionFileName", Path.GetFileName(solutionPath)),
 				("SolutionExt", Path.GetExtension(solutionPath))
@@ -183,8 +184,6 @@ namespace BuildOnSave
 			var solutionSkippedInstances = loadedProjects.Except(solutionSelectedInstances).ToArray();
 
 			var changedProjects = Projects.OfPaths(loadedProjects, changedProjectPaths);
-
-			string SolutionDir = Path.GetDirectoryName(solution.FullName) + "\\";
 
 			if (startupProject_ == null)
 			{
@@ -281,9 +280,9 @@ namespace BuildOnSave
 		BuildStatus buildCore(BuildRequest request, CancellationToken cancellation)
 		{
 #if DEBUG
-			var verbosity = LoggerVerbosity.Minimal;
+			var verbosity = LoggerVerbosity.Detailed;
 #else
-			var verbosity = LoggerVerbosity.Quiet;
+			var verbosity = LoggerVerbosity.Normal;
 #endif
 			var consoleLogger = new ConsoleLogger(verbosity,
 				str =>

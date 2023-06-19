@@ -8,20 +8,23 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
-using System.Threading;
 using System.Collections.Generic;
+using System.Threading;
+using Microsoft.VisualStudio;
 
 namespace BuildOnSave
 {
 	[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
-	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string, PackageAutoLoadFlags.BackgroundLoad)]
+	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasMultipleProjects_string, PackageAutoLoadFlags.BackgroundLoad)]
+	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasSingleProject_string, PackageAutoLoadFlags.BackgroundLoad)]
 	[ProvideMenuResource("Menus.ctmenu", 1)]
 	[Guid(PackageGuidString)]
 
 	public sealed class BuildOnSavePackage : AsyncPackage
 	{
-		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
+		public const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 		BuildOnSave _buildOnSave_;
 
 		// Settings history
@@ -58,10 +61,10 @@ namespace BuildOnSave
 			_dte = (DTE) await GetServiceAsync(typeof (DTE));
 			_events = _dte.Events;
 			_solutionEvents = _events.SolutionEvents;
-			_solutionEvents.Opened += solutionOpened;
+			_solutionEvents.Opened += solutionOpened;	
 			_solutionEvents.AfterClosing += solutionClosed;
 
-			await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+			await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 			try
 			{
 				var commandService = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
@@ -69,7 +72,7 @@ namespace BuildOnSave
 				// switch to the main thread is required.
 				// Now I am asking why we need InitializeAsync() at all if we could just switch
 				// to the main thread?
-				await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 				_buildOnSave_ = new BuildOnSave(_dte, commandService);
 			}
 			catch (Exception e)

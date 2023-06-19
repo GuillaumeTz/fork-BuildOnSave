@@ -1,7 +1,6 @@
-using System.Collections.Generic;
 using System.Linq;
 using EnvDTE;
-using EnvDTE80;
+using Project = EnvDTE.Project;
 
 namespace BuildOnSave
 {
@@ -37,7 +36,7 @@ namespace BuildOnSave
 			return project.Kind != Constants.vsProjectKindUnmodeled;
 		}
 
-		public static Project[] GetAllProjects(this Solution2 sln)
+		public static Project[] GetAllProjects(this EnvDTE80.Solution2 sln)
 		{
 			return sln.Projects
 				.Cast<Project>()

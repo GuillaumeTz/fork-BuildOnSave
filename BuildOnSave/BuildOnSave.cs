@@ -1,10 +1,8 @@
 using System;
 using System.ComponentModel.Design;
-using System.Threading.Tasks;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
-using System.Diagnostics;
 using System.Collections.Generic;
 
 namespace BuildOnSave
@@ -35,7 +33,7 @@ namespace BuildOnSave
 		readonly DocumentEvents _documentEvents;
 		readonly BuildEvents _buildEvents;
 		readonly CommandEvents _buildSolutionEvent;
-		readonly CommandEvents _saveCommandEvent;
+		readonly CommandEvents _saveCommandEvent; 
 		readonly CommandEvents _saveAsCommandEvent;
 
 		// state

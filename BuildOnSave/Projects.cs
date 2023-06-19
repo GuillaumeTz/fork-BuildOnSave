@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EnvDTE;
+using Project = EnvDTE.Project;
 using Microsoft.Build.Execution;
 
 namespace BuildOnSave
