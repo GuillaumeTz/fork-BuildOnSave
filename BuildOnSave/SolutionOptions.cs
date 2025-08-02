@@ -15,6 +15,8 @@ namespace BuildOnSave
 		public BuildType BuildType;
 		public bool DisableWhenDebugging;
 		public bool RelaunchNewBuildWhenSaved;
+		public bool RelaunchNewBuildWhenSavedOnlyIfHeaderFile;
+		public List<string> IgnoreExtensions = new List<string>();
 		public List<string> DoNotRunIfProcessExistList = new List<string>();
 	}
 }

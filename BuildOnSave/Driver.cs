@@ -142,14 +142,29 @@ namespace BuildOnSave
 				}
 			}
 
+			if (_options.IgnoreExtensions.Count > 0)
+			{
+				foreach (string Extension in _options.IgnoreExtensions)
+				{
+					if (document.FullName.EndsWith(Extension))
+					{
+						Log.D("Document end with {Extension} => ignoring", Extension);
+						return;
+					}
+				}
+			}
+
 			_savedDocuments.Add(document);
 			Log.D("document saved {path}:", document.FullName);
 
 			//cancel previous compilation and launch now
 			if (_options.RelaunchNewBuildWhenSaved && IsBackgroundBuildRunning)
 			{
-				_ui.setBuildStatus(BuildStatus.Indeterminate);
-				_backgroundBuild.cancelAndWait();
+				if (!_options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile || document.FullName.EndsWith(".h"))
+				{
+					_ui.setBuildStatus(BuildStatus.Indeterminate);
+					_backgroundBuild.cancelAndWait();
+				}
 			}
 			schedule(beginBuild);
 		}

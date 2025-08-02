@@ -15,6 +15,7 @@ namespace BuildOnSave
 		const int BuildTypeStartupProjectCommandId = 0x102;
 		const int DisableWhenDebuggingCommandId = 0x103;
 		const int RelaunchNewBuildWhenSavedCommandId = 0x104;
+		const int RelaunchNewBuildWhenSavedOnlyIfHeaderFileCommandId = 0x105;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
@@ -24,6 +25,7 @@ namespace BuildOnSave
 		readonly MenuCommand _buildTypeStartupProject;
 		readonly MenuCommand _disableWhenDebugging;
 		readonly MenuCommand _relaunchNewBuildWhenSaved;
+		readonly MenuCommand _relaunchNewBuildWhenSavedOnlyIfHeaderFile;
 
 		readonly Window _outputWindow;
 		readonly OutputWindowPane _outputPane;
@@ -59,6 +61,9 @@ namespace BuildOnSave
 					new CommandID(CommandSet, DisableWhenDebuggingCommandId));
 			_relaunchNewBuildWhenSaved = new MenuCommand(enableRelaunchNewBuildWhenSaved,
 				new CommandID(CommandSet, RelaunchNewBuildWhenSavedCommandId));
+			_relaunchNewBuildWhenSavedOnlyIfHeaderFile = new MenuCommand(enableRelaunchNewBuildWhenSavedOnlyIfHeaderFile,
+				new CommandID(CommandSet, RelaunchNewBuildWhenSavedOnlyIfHeaderFileCommandId));
+
 			_buildTypeSolution = 
 					new MenuCommand(setBuildTypeToSolution, 
 						new CommandID(CommandSet, BuildTypeSolutionCommandId));
@@ -70,6 +75,7 @@ namespace BuildOnSave
 			commandService.AddCommand(_menuItem);
 			commandService.AddCommand(_disableWhenDebugging);
 			commandService.AddCommand(_relaunchNewBuildWhenSaved);
+			commandService.AddCommand(_relaunchNewBuildWhenSavedOnlyIfHeaderFile);
 			commandService.AddCommand(_buildTypeSolution);
 			commandService.AddCommand(_buildTypeStartupProject);
 
@@ -137,6 +143,12 @@ namespace BuildOnSave
 			syncOptions();
 		}
 
+		void enableRelaunchNewBuildWhenSavedOnlyIfHeaderFile(object sender, EventArgs e)
+		{
+			_solutionOptions.RelaunchNewBuildWhenSavedOnlyIfHeaderFile = !_solutionOptions.RelaunchNewBuildWhenSavedOnlyIfHeaderFile;
+			syncOptions();
+		}
+
 		void syncOptions()
 		{
 			var options = _solutionOptions;
@@ -161,6 +173,8 @@ namespace BuildOnSave
 			_disableWhenDebugging.Enabled = _driver_ != null;
 			_relaunchNewBuildWhenSaved.Checked = options.RelaunchNewBuildWhenSaved;
 			_relaunchNewBuildWhenSaved.Enabled = _driver_ != null;
+			_relaunchNewBuildWhenSaved.Checked = options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile;
+			_relaunchNewBuildWhenSaved.Enabled = _driver_ != null && _relaunchNewBuildWhenSaved.Enabled;
 		}
 
 		void connectDriver(SolutionOptions options)
@@ -230,7 +244,9 @@ namespace BuildOnSave
 			BuildType = BuildType.StartupProject,
 			DisableWhenDebugging = true,
 			RelaunchNewBuildWhenSaved = true,
+			RelaunchNewBuildWhenSavedOnlyIfHeaderFile = true,
 			DoNotRunIfProcessExistList = new List<string>(new string[] { "UnrealBuildTool" }),
+			IgnoreExtensions = new List<string>(new string[] { ".hpp" })
 		};
 	}
 

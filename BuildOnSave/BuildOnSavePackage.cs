@@ -125,6 +125,10 @@ namespace BuildOnSave
 					if (_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList == null)
 						_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList = new List<string>();
 					_buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList = _buildOnSave_.SolutionOptions.DoNotRunIfProcessExistList.Distinct().ToList();
+
+					if (_buildOnSave_.SolutionOptions.IgnoreExtensions == null)
+						_buildOnSave_.SolutionOptions.IgnoreExtensions = new List<string>();
+					_buildOnSave_.SolutionOptions.IgnoreExtensions = _buildOnSave_.SolutionOptions.IgnoreExtensions.Distinct().ToList();
 				}
 			}
 			catch (Exception e)
