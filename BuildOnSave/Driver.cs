@@ -1,13 +1,17 @@
+using EnvDTE;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
-using EnvDTE;
-using Project = EnvDTE.Project;
-using System.Diagnostics;
 using Process = System.Diagnostics.Process;
+using Project = EnvDTE.Project;
 
 namespace BuildOnSave
 {
@@ -83,11 +87,23 @@ namespace BuildOnSave
 
 		public void onBeforeSaveCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
+			if (_options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile && !_dte.ActiveDocument.FullName.EndsWith(".h"))
+			{
+				Log.D("Don't interrupt a current build if not header file !");
+				return;
+			}
+
 			cancelBackgroundBuild();
 		}
 
 		public void onBeforeSaveAsCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
+			if (_options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile && !_dte.ActiveDocument.FullName.EndsWith(".h"))
+			{
+				Log.D("Don't interrupt a current build if not header file !");
+				return;
+			}
+
 			cancelBackgroundBuild();
 		}
 
@@ -154,18 +170,22 @@ namespace BuildOnSave
 				}
 			}
 
-			_savedDocuments.Add(document);
-			Log.D("document saved {path}:", document.FullName);
-
 			//cancel previous compilation and launch now
 			if (_options.RelaunchNewBuildWhenSaved && IsBackgroundBuildRunning)
 			{
-				if (!_options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile || document.FullName.EndsWith(".h"))
+				if (_options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile && !document.FullName.EndsWith(".h"))
 				{
-					_ui.setBuildStatus(BuildStatus.Indeterminate);
-					_backgroundBuild.cancelAndWait();
+					Log.D("Don't interrupt a current build if not header file !");
+					return;
 				}
+
+				_ui.setBuildStatus(BuildStatus.Indeterminate);
+				_backgroundBuild.cancelAndWait();
 			}
+
+			_savedDocuments.Add(document);
+			Log.D("document saved {path}:", document.FullName);
+
 			schedule(beginBuild);
 		}
 

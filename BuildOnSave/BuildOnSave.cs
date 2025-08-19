@@ -173,8 +173,8 @@ namespace BuildOnSave
 			_disableWhenDebugging.Enabled = _driver_ != null;
 			_relaunchNewBuildWhenSaved.Checked = options.RelaunchNewBuildWhenSaved;
 			_relaunchNewBuildWhenSaved.Enabled = _driver_ != null;
-			_relaunchNewBuildWhenSaved.Checked = options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile;
-			_relaunchNewBuildWhenSaved.Enabled = _driver_ != null && _relaunchNewBuildWhenSaved.Enabled;
+			_relaunchNewBuildWhenSavedOnlyIfHeaderFile.Checked = options.RelaunchNewBuildWhenSavedOnlyIfHeaderFile;
+			_relaunchNewBuildWhenSavedOnlyIfHeaderFile.Enabled = _driver_ != null && _relaunchNewBuildWhenSaved.Enabled;
 		}
 
 		void connectDriver(SolutionOptions options)
