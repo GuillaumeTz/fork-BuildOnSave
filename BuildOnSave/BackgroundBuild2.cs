@@ -214,6 +214,11 @@ namespace BuildOnSave
 				var changedProjectsInStartupProjectsClosure = changedProjects.Intersect(startupProjectsClosure).ToArray();
 
 				var affectedProjects = dependencies.AffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
+				// Always recompile startup project if there is no affected project to recompile
+				if (affectedProjects.Length == 0)
+				{
+					affectedProjects = startupProjects;
+				}
 
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 				if (selected.Length == 0)
