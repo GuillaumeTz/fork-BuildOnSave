@@ -58,13 +58,14 @@ namespace BuildOnSave
 		{
 			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
 
+			await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 			_dte = (DTE) await GetServiceAsync(typeof (DTE));
 			_events = _dte.Events;
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;	
 			_solutionEvents.AfterClosing += solutionClosed;
 
-			await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+			ErrorListHelper.Init(this);
 			try
 			{
 				var commandService = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;

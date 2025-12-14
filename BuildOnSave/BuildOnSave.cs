@@ -44,6 +44,8 @@ namespace BuildOnSave
 
 		public BuildOnSave(DTE dte, OleMenuCommandService commandService)
 		{
+			Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread("BuildOnSave constructor");
+
 			_dte = dte;
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
@@ -182,6 +184,8 @@ namespace BuildOnSave
 			if (_driver_ != null)
 				return;
 
+			Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread("connectDriver");
+
 			var backgroundBuild = new BackgroundBuild2(_dte, _outputPane);
 			var ui = new DriverUI(_dte, _outputWindow, _outputPane);
 			var driver = new Driver(_dte, options, backgroundBuild, ui);
@@ -208,6 +212,8 @@ namespace BuildOnSave
 			var driver = _driver_;
 			if (driver == null)
 				return;
+
+			Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread("disconnectDriver");
 
 			_documentEvents.DocumentSaved -= driver.onDocumentSaved;
 

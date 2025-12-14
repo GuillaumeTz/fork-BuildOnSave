@@ -11,6 +11,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
 using static BuildOnSave.DevTools;
 using Project = EnvDTE.Project;
+using Microsoft.VisualStudio.Shell;
 
 namespace BuildOnSave
 {
@@ -144,6 +145,8 @@ namespace BuildOnSave
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
+			Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread("tryMakeBuildRequest");
+
 			var solution = (EnvDTE80.Solution2)_dte.Solution;
 
 			var solutionPath = solution.FullName;
@@ -240,12 +243,15 @@ namespace BuildOnSave
 		/// Cancel an outstanding build and wait for it to end. 
 		/// Note that this method may return at the time the build actually ends but shortly before IsRunning is set to false.
 		/// </summary>
-		public void cancelAndWait()
+		public void cancelAndWait(int Milliseconds = 5000)
 		{
 			_buildCancellation_?.Cancel();
 
-			while (_coreRunning)
-				System.Threading.Thread.Sleep(500);
+			while (_coreRunning && Milliseconds > 0)
+			{
+				Milliseconds -= 100;
+				System.Threading.Thread.Sleep(100);
+			}
 		}
 
 		void build(BuildRequest request, CancellationToken cancellation, Action<BuildStatus> onCompleted)
@@ -263,7 +269,7 @@ namespace BuildOnSave
 				coreToIDE(() =>
 				{
 					_pane.Clear();
-					_pane.Activate();
+					// _pane.Activate();
 				});
 
 				status = buildCore(request, cancellation);
@@ -299,7 +305,7 @@ namespace BuildOnSave
 				ShowSummary = false
 			};
 
-			var summaryLogger = new SummaryLogger();
+			var summaryLogger = new SummaryLogger(_mainThread);
 
 			var parameters = new BuildParameters()
 			{
@@ -311,6 +317,14 @@ namespace BuildOnSave
 			
 			printIntro(request);
 			var status = buildCore(request, cancellation, parameters);
+			if (!cancellation.IsCancellationRequested)
+			{
+				_mainThread.Post(_ =>
+				{
+					ErrorListHelper.Instance().ClearTasksExceptForFilepaths(summaryLogger.updatedErrorListFiles);
+				},
+				null);
+			}
 			printSummary(summaryLogger, request.AllProjectsToBuildOrdered);
 			return status;
 		}
@@ -432,12 +446,68 @@ namespace BuildOnSave
 			readonly List<BuildResult> _projectResults = new List<BuildResult>();
 			public IEnumerable<BuildResult> ProjectResults => _projectResults.ToArray();
 
-			public void Initialize(IEventSource eventSource)
+			public HashSet<string> updatedErrorListFiles = new HashSet<string>();
+			private SynchronizationContext mainThread;
+
+			public SummaryLogger(SynchronizationContext inMainThread)
 			{
-				eventSource.ProjectFinished += onProjectFinished;
+				mainThread = inMainThread;
 			}
 
-			void onProjectFinished(object sender, ProjectFinishedEventArgs e)
+			public void Initialize(IEventSource eventSource)
+			{
+				eventSource.ProjectFinished += OnProjectFinished;
+				eventSource.ErrorRaised += OnErrorRaised;
+				eventSource.WarningRaised += OnWarningRaised;
+				eventSource.MessageRaised += OnMessageRaised;
+			}
+
+			void OnErrorRaised(object sender, BuildErrorEventArgs e)
+			{
+				mainThread.Post(_ => {
+					if (updatedErrorListFiles.Add(e.File))
+					{
+						ErrorListHelper.Instance().ClearTasksByFilepath(e.File);
+					}
+
+					ErrorListHelper.Instance().AddError(TaskCategory.BuildCompile,
+					TaskErrorCategory.Error,
+					e.Message,
+					e.File,
+					e.LineNumber,
+					e.ColumnNumber);
+				}, null);
+			}
+
+			void OnWarningRaised(object sender, BuildWarningEventArgs e)
+			{
+				mainThread.Post(_ => {
+					if (updatedErrorListFiles.Add(e.File))
+					{
+						ErrorListHelper.Instance().ClearTasksByFilepath(e.File);
+					}
+
+					ErrorListHelper.Instance().AddError(TaskCategory.BuildCompile,
+					TaskErrorCategory.Warning,
+					e.Message,
+					e.File,
+					e.LineNumber,
+					e.ColumnNumber);
+				}, null);
+			}
+
+			void OnMessageRaised(object sender, BuildMessageEventArgs e)
+			{
+				mainThread.Post(_ => {
+
+					if (updatedErrorListFiles.Add(e.File))
+					{
+						ErrorListHelper.Instance().ClearTasksByFilepath(e.File);
+					}
+				}, null);
+			}
+
+			void OnProjectFinished(object sender, ProjectFinishedEventArgs e)
 			{
 				_projectResults.Add(new BuildResult(e.BuildEventContext.ProjectInstanceId, e.ProjectFile, e.Succeeded));
 			}
